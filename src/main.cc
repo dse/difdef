@@ -101,7 +101,7 @@ static void do_help()
     exit(EXIT_SUCCESS);
 }
 
-static void do_print_multicolumn(const Difdef::Diff &diff, FILE *out, int use_colors, int use_separator)
+static void do_print_multicolumn(const Difdef::Diff &diff, FILE *out, int use_colors, int use_separator, int use_faint)
 {
     /* The default output is a multicolumn format:
      *     a  This line appears only in the first file.
@@ -114,10 +114,13 @@ static void do_print_multicolumn(const Difdef::Diff &diff, FILE *out, int use_co
     static const char alphabet[] = "abcdefghijklmnopqrstuvwxyzABCDEF";
     for (size_t i=0; i < diff.lines.size(); ++i) {
         const Difdef::Diff::Line &line = diff.lines[i];
+        int all_common = 1;
         for (int j=0; j < diff.dimension; ++j) {
             if (get_use_colors(use_colors, out)) {
                 fputs(get_term_escape(j), out);
             }
+            if (!line.in_file(j))
+                all_common = 0;
             putc((line.in_file(j) ? alphabet[j] : ' '), out);
         }
         if (get_use_colors(use_colors, out)) {
@@ -126,7 +129,13 @@ static void do_print_multicolumn(const Difdef::Diff &diff, FILE *out, int use_co
         if (use_separator) {
             fputs(box_drawing_vertical, out);
         }
-        fprintf(out, "%s\n", line.text->c_str());
+        if (get_use_colors(use_colors, out) && all_common && use_faint) {
+            fputs(COLOR_FAINT, out);
+            fputs(line.text->c_str(), out);
+            putc('\n', out);
+        } else {
+            fprintf(out, "%s\n", line.text->c_str());
+        }
     }
 }
 
@@ -263,6 +272,7 @@ int main(int argc, char **argv)
     bool use_colors_not_specified = true;
     bool force_ascii = false;
     int use_colors = 0;
+    bool use_faint = false;
     size_t lines_of_context = 0;
 
     static const struct option longopts[] = {
@@ -282,6 +292,7 @@ int main(int argc, char **argv)
         { "color", optional_argument, NULL, 0 },
         { "protanomaly", no_argument, NULL, 0 },
         { "ascii", no_argument, NULL, 0 },
+        { "faint", no_argument, NULL, 0 },
         { 0, 0, 0, 0 }
     };
     int c;
@@ -313,6 +324,7 @@ int main(int argc, char **argv)
                     use_header = true;
                     use_lines = true;
                     use_separator = true;
+                    use_faint = true;
                     if (use_colors_not_specified) {
                         use_colors = COLOR_USE_AUTO;
                     }
@@ -320,6 +332,8 @@ int main(int argc, char **argv)
                     set_protanomaly();
                 } else if (!strcmp(longopts[longopt_index].name, "ascii")) {
                     force_ascii = true;
+                } else if (!strcmp(longopts[longopt_index].name, "faint")) {
+                    use_faint = true;
                 } else if (!strcmp(longopts[longopt_index].name, "color")) {
                     if (!optarg) { // optional argument not specified
                         use_colors_not_specified = false;
@@ -529,7 +543,7 @@ int main(int argc, char **argv)
                 do_print_legend(diff, files, out, AS_HEADER, use_lines, use_colors);
                 do_print_horizontal_rule(diff, out, use_lines, use_colors, AS_HEADER, use_separator);
             }
-            do_print_multicolumn(diff, out, use_colors, use_separator);
+            do_print_multicolumn(diff, out, use_colors, use_separator, use_faint);
             if (use_footer) {
                 do_print_horizontal_rule(diff, out, use_lines, use_colors, AS_FOOTER, use_separator);
                 do_print_legend(diff, files, out, AS_FOOTER, use_lines, use_colors);

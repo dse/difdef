@@ -10,7 +10,7 @@
 #define COLOR_BLUE           "\033[0;34m"
 #define COLOR_MAGENTA        "\033[0;35m"
 #define COLOR_CYAN           "\033[0;36m"
-#define COLOR_WHITE          "\033[0;37n"
+#define COLOR_WHITE          "\033[0;37m"
 #define COLOR_BRIGHT_RED     "\033[0;1;31m"
 #define COLOR_BRIGHT_GREEN   "\033[0;1;32m"
 #define COLOR_BRIGHT_YELLOW  "\033[0;1;33m"

@@ -82,6 +82,7 @@ static void do_help()
     puts("  -i, --ignore-case");
     puts("      --ignore-quote-style   Ignore differences between ' and \".");
     puts("      --keep-identifiers     When -w is in effect, keep identifiers separated.");
+    puts("      --ignore-trailing-space");
     puts("");
     puts("Pretty-printing controls:");
     puts("      --header, --footer     Print filename legend as a header and/or footer.");
@@ -369,13 +370,14 @@ int main(int argc, char **argv)
         { "keep-identifiers", no_argument, NULL, 0 },
         { "ignore-case", no_argument, NULL, 0 },
         { "ignore-quote-style", no_argument, NULL, 0 },
+        { "ignore-trailing-space", no_argument, NULL, 0 },
         { 0, 0, 0, 0 }
     };
     int c;
     int longopt_index;
     bool preceded_by_digit = false;
     size_t ocontext = -1;
-    while ((c = getopt_long(argc, argv, "0123456789bD:io:rtuU:w", longopts, &longopt_index)) != -1) {
+    while ((c = getopt_long(argc, argv, "0123456789bD:io:rtuU:wZ", longopts, &longopt_index)) != -1) {
         switch (c) {
             case 0:
                 if (!strcmp(longopts[longopt_index].name, "help")) {
@@ -437,6 +439,8 @@ int main(int argc, char **argv)
                     ignore_case = true;
                 } else if (!strcmp(longopts[longopt_index].name, "ignore-quote-style")) {
                     ignore_quote_style = true;
+                } else if (!strcmp(longopts[longopt_index].name, "ignore-trailing-space")) {
+                    ignore_trailing_space = true;
                 } else {
                     assert(false);
                 }
@@ -504,6 +508,10 @@ int main(int argc, char **argv)
                 break;
             case 'w': {
                 ignore_all_space = true;
+                break;
+            }
+            case 'Z': {
+                ignore_trailing_space = true;
                 break;
             }
             case '?':

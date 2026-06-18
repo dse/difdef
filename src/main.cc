@@ -83,6 +83,7 @@ static void do_help()
     puts("      --ignore-quote-style   Ignore differences between ' and \".");
     puts("      --keep-identifiers     When -w is in effect, keep identifiers separated.");
     puts("      --ignore-trailing-space");
+    puts("      --expand-tabs");
     puts("");
     puts("Pretty-printing controls:");
     puts("      --header, --footer     Print filename legend as a header and/or footer.");
@@ -371,6 +372,7 @@ int main(int argc, char **argv)
         { "ignore-case", no_argument, NULL, 0 },
         { "ignore-quote-style", no_argument, NULL, 0 },
         { "ignore-trailing-space", no_argument, NULL, 0 },
+        { "expand-tabs", no_argument, NULL, 0 },
         { 0, 0, 0, 0 }
     };
     int c;
@@ -441,6 +443,8 @@ int main(int argc, char **argv)
                     ignore_quote_style = true;
                 } else if (!strcmp(longopts[longopt_index].name, "ignore-trailing-space")) {
                     ignore_trailing_space = true;
+                } else if (!strcmp(longopts[longopt_index].name, "expand-tabs")) {
+                    expand_tabs = true;
                 } else {
                     assert(false);
                 }

@@ -73,13 +73,15 @@ static void do_help()
     puts("      --complex (--simple)   Use (do not use) #elif and #else constructs.");
     puts("  -o  --output=FILE          Write result to FILE instead of standard output.");
     puts("  -r  --recursive            Recursively compare subdirectories.");
+    puts("      --pretty               Set most pretty-printing options in multi-column.");
+    puts("");
+    puts("Filters:");
     puts("  -t                         Expand tabs and strip trailing whitespace.");
     puts("  -w, --ignore-all-space");
     puts("  -b, --ignore-space-change");
     puts("  -i, --ignore-case");
     puts("      --ignore-quote-style   Ignore differences between ' and \".");
     puts("      --keep-identifiers     When -w is in effect, keep identifiers separated.");
-    puts("      --pretty               Set most pretty-printing options in multi-column.");
     puts("");
     puts("Pretty-printing controls:");
     puts("      --header, --footer     Print filename legend as a header and/or footer.");

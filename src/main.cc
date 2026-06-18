@@ -238,22 +238,32 @@ static void do_print_legend(const Difdef::Diff &diff,
     }
 }
 
-static std::string do_normalize_whitespace(const std::string &line)
+bool expand_tabs = false;
+bool ignore_trailing_space = false;
+
+static std::string do_filters(const std::string &line)
 {
     size_t n = line.length();
-    bool has_trailing_whitespace = isspace(line[n-1]);
-    bool has_tabs = (strchr(line.c_str(), '\t') != NULL);
-    if (!has_tabs && !has_trailing_whitespace) {
+    if (!n) {
         return line;
-    } else {
-        for (--n; isspace(line[n-1]); --n) ;
-        std::string result(line, 0, n);
+    }
+
+    std::string result(line, 0, n);
+    
+    if (ignore_trailing_space) {
+        for (; n && isspace(result[n-1]); --n) ;
+        result.erase(n);
+    }
+    
+    if (expand_tabs) {
         while (size_t tab = result.find('\t')+1) {
             size_t tab_length = 8 - ((tab-1) % 8);
             result.replace(tab-1, 1, tab_length, ' ');
+            n += tab_length - 1;
         }
-        return result;
     }
+
+    return result;
 }
 
 int main(int argc, char **argv)
@@ -264,7 +274,6 @@ int main(int argc, char **argv)
     bool print_unified_diff = false;
     bool print_recursively = false;
     bool use_only_simple_ifs = true;
-    bool normalize_whitespace = false;
     bool use_header = false;
     bool use_footer = false;
     bool use_lines = false;
@@ -390,7 +399,8 @@ int main(int argc, char **argv)
                 break;
             }
             case 't': {
-                normalize_whitespace = true;
+                ignore_trailing_space = true;
+                expand_tabs = true;
                 break;
             }
             case 'U':
@@ -467,8 +477,8 @@ int main(int argc, char **argv)
     }
 
     Difdef difdef(num_files);
-    if (normalize_whitespace) {
-        difdef.set_filter(do_normalize_whitespace);
+    if (expand_tabs || ignore_trailing_space) {
+        difdef.set_filter(do_filters);
     }
 
     std::vector<FileInfo> files(num_files);

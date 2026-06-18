@@ -76,6 +76,7 @@ static void do_help()
     puts("  -t                         Expand tabs and strip trailing whitespace.");
     puts("  -w, --ignore-all-space");
     puts("  -b, --ignore-space-change");
+    puts("  -i, --ignore-case");
     puts("      --keep-identifiers     When -w is in effect, keep identifiers separated.");
     puts("      --pretty               Set most pretty-printing options in multi-column.");
     puts("");
@@ -246,6 +247,7 @@ bool ignore_trailing_space = false;
 bool ignore_all_space = false;
 bool ignore_space_change = false;
 bool keep_identifiers = false;
+bool ignore_case = false;
 
 int isident(int ch) {
     return isalnum(ch) || ch == '_';
@@ -305,6 +307,12 @@ static std::string do_filters(const std::string &line)
         assert(result.length() == n);
     }
 
+    if (ignore_case) {
+        for (size_t i = 0; i < n; ++i) {
+            result[i] = tolower(result[i]);
+        }
+    }
+
     return result;
 }
 
@@ -347,13 +355,14 @@ int main(int argc, char **argv)
         { "ignore-all-space", no_argument, NULL, 0 },
         { "ignore-space-change", no_argument, NULL, 0 },
         { "keep-identifiers", no_argument, NULL, 0 },
+        { "ignore-case", no_argument, NULL, 0 },
         { 0, 0, 0, 0 }
     };
     int c;
     int longopt_index;
     bool preceded_by_digit = false;
     size_t ocontext = -1;
-    while ((c = getopt_long(argc, argv, "0123456789bD:o:rtuU:w", longopts, &longopt_index)) != -1) {
+    while ((c = getopt_long(argc, argv, "0123456789bD:io:rtuU:w", longopts, &longopt_index)) != -1) {
         switch (c) {
             case 0:
                 if (!strcmp(longopts[longopt_index].name, "help")) {
@@ -411,6 +420,8 @@ int main(int argc, char **argv)
                     ignore_space_change = true;
                 } else if (!strcmp(longopts[longopt_index].name, "keep-identifiers")) {
                     keep_identifiers = true;
+                } else if (!strcmp(longopts[longopt_index].name, "ignore-case")) {
+                    ignore_case = true;
                 } else {
                     assert(false);
                 }
@@ -442,6 +453,10 @@ int main(int argc, char **argv)
                     expression = std::string(BUILTIN_DEFINE) + optarg;
                 }
                 user_defined_macro_names.push_back(expression);
+                break;
+            }
+            case 'i': {
+                ignore_case = true;
                 break;
             }
             case 'o': {
@@ -536,7 +551,7 @@ int main(int argc, char **argv)
     }
 
     Difdef difdef(num_files);
-    if (expand_tabs || ignore_trailing_space || ignore_all_space || ignore_space_change) {
+    if (expand_tabs || ignore_trailing_space || ignore_all_space || ignore_space_change || ignore_case) {
         difdef.set_filter(do_filters);
     }
 

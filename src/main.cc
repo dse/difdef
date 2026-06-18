@@ -74,6 +74,9 @@ static void do_help()
     puts("  -o  --output=FILE          Write result to FILE instead of standard output.");
     puts("  -r  --recursive            Recursively compare subdirectories.");
     puts("  -t                         Expand tabs and strip trailing whitespace.");
+    puts("  -w, --ignore-all-space");
+    puts("  -b, --ignore-space-change");
+    puts("      --keep-identifiers     When -w is in effect, keep identifiers separated.");
     puts("      --pretty               Set most pretty-printing options in multi-column.");
     puts("");
     puts("Pretty-printing controls:");
@@ -240,6 +243,13 @@ static void do_print_legend(const Difdef::Diff &diff,
 
 bool expand_tabs = false;
 bool ignore_trailing_space = false;
+bool ignore_all_space = false;
+bool ignore_space_change = false;
+bool keep_identifiers = false;
+
+int isident(int ch) {
+    return isalnum(ch) || ch == '_';
+}
 
 static std::string do_filters(const std::string &line)
 {
@@ -250,17 +260,49 @@ static std::string do_filters(const std::string &line)
 
     std::string result(line, 0, n);
     
-    if (ignore_trailing_space) {
+    if (ignore_trailing_space && !ignore_all_space) {
         for (; n && isspace(result[n-1]); --n) ;
         result.erase(n);
+        assert(result.length() == n);
     }
     
-    if (expand_tabs) {
+    if (expand_tabs && !ignore_all_space && !ignore_space_change) {
         while (size_t tab = result.find('\t')+1) {
             size_t tab_length = 8 - ((tab-1) % 8);
             result.replace(tab-1, 1, tab_length, ' ');
             n += tab_length - 1;
         }
+        assert(result.length() == n);
+    }
+
+    if (ignore_all_space) {
+        for (size_t i = 0; i < n; ++i) {
+            size_t p = i;
+            for (; p < n && isspace(result[p]); ++p) ;
+            if (keep_identifiers && p != i && p < n && i && isident(result[i-1]) && isident(result[p])) {
+                result[i] = ' ';
+                i++;
+            }
+            if (p != i) {
+                result.erase(i, p - i);
+                n -= (p - i);
+            }
+        }
+        assert(result.length() == n);
+    } else if (ignore_space_change) {
+        for (size_t i = 0; i < n; ++i) {
+            if (isspace(result[i])) {
+                result[i] = ' ';
+                i++;
+                size_t p = i;
+                for (; p < n && isspace(result[p]); ++p) ;
+                if (p != i) {
+                    result.erase(i, p - i);
+                    n -= (p - i);
+                }
+            }
+        }
+        assert(result.length() == n);
     }
 
     return result;
@@ -302,13 +344,16 @@ int main(int argc, char **argv)
         { "protanomaly", no_argument, NULL, 0 },
         { "ascii", no_argument, NULL, 0 },
         { "faint", no_argument, NULL, 0 },
+        { "ignore-all-space", no_argument, NULL, 0 },
+        { "ignore-space-change", no_argument, NULL, 0 },
+        { "keep-identifiers", no_argument, NULL, 0 },
         { 0, 0, 0, 0 }
     };
     int c;
     int longopt_index;
     bool preceded_by_digit = false;
     size_t ocontext = -1;
-    while ((c = getopt_long(argc, argv, "0123456789D:o:rtuU:", longopts, &longopt_index)) != -1) {
+    while ((c = getopt_long(argc, argv, "0123456789bD:o:rtuU:w", longopts, &longopt_index)) != -1) {
         switch (c) {
             case 0:
                 if (!strcmp(longopts[longopt_index].name, "help")) {
@@ -360,6 +405,12 @@ int main(int argc, char **argv)
                         fputs("invalid value for --color[=no|auto|always]\n", stderr);
                         exit(EXIT_FAILURE);
                     }
+                } else if (!strcmp(longopts[longopt_index].name, "ignore-all-space")) {
+                    ignore_all_space = true;
+                } else if (!strcmp(longopts[longopt_index].name, "ignore-space-change")) {
+                    ignore_space_change = true;
+                } else if (!strcmp(longopts[longopt_index].name, "keep-identifiers")) {
+                    keep_identifiers = true;
                 } else {
                     assert(false);
                 }
@@ -375,6 +426,10 @@ int main(int argc, char **argv)
                     ocontext = (c - '0');
                 }
                 break;
+            case 'b': {
+                ignore_space_change = true;
+                break;
+            }
             case 'D': {
                 print_using_ifdefs = true;
                 assert(optarg != NULL);
@@ -417,6 +472,10 @@ int main(int argc, char **argv)
                     lines_of_context = std::max<size_t>(lines_of_context, 3);
                 }
                 break;
+            case 'w': {
+                ignore_all_space = true;
+                break;
+            }
             case '?':
                 exit(EXIT_FAILURE);
             default:
@@ -477,7 +536,7 @@ int main(int argc, char **argv)
     }
 
     Difdef difdef(num_files);
-    if (expand_tabs || ignore_trailing_space) {
+    if (expand_tabs || ignore_trailing_space || ignore_all_space || ignore_space_change) {
         difdef.set_filter(do_filters);
     }
 

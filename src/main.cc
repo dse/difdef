@@ -77,6 +77,7 @@ static void do_help()
     puts("  -w, --ignore-all-space");
     puts("  -b, --ignore-space-change");
     puts("  -i, --ignore-case");
+    puts("      --ignore-quote-style   Ignore differences between ' and \".");
     puts("      --keep-identifiers     When -w is in effect, keep identifiers separated.");
     puts("      --pretty               Set most pretty-printing options in multi-column.");
     puts("");
@@ -248,6 +249,7 @@ bool ignore_all_space = false;
 bool ignore_space_change = false;
 bool keep_identifiers = false;
 bool ignore_case = false;
+bool ignore_quote_style = false;
 
 int isident(int ch) {
     return isalnum(ch) || ch == '_';
@@ -313,6 +315,14 @@ static std::string do_filters(const std::string &line)
         }
     }
 
+    if (ignore_quote_style) {
+        for (size_t i = 0; i < n; ++i) {
+            if (result[i] == '\'') {
+                result[i] = '"';
+            }
+        }
+    }
+
     return result;
 }
 
@@ -356,6 +366,7 @@ int main(int argc, char **argv)
         { "ignore-space-change", no_argument, NULL, 0 },
         { "keep-identifiers", no_argument, NULL, 0 },
         { "ignore-case", no_argument, NULL, 0 },
+        { "ignore-quote-style", no_argument, NULL, 0 },
         { 0, 0, 0, 0 }
     };
     int c;
@@ -422,6 +433,8 @@ int main(int argc, char **argv)
                     keep_identifiers = true;
                 } else if (!strcmp(longopts[longopt_index].name, "ignore-case")) {
                     ignore_case = true;
+                } else if (!strcmp(longopts[longopt_index].name, "ignore-quote-style")) {
+                    ignore_quote_style = true;
                 } else {
                     assert(false);
                 }
@@ -551,7 +564,8 @@ int main(int argc, char **argv)
     }
 
     Difdef difdef(num_files);
-    if (expand_tabs || ignore_trailing_space || ignore_all_space || ignore_space_change || ignore_case) {
+    if (expand_tabs || ignore_trailing_space || ignore_all_space || 
+        ignore_space_change || ignore_case || ignore_quote_style) {
         difdef.set_filter(do_filters);
     }
 
